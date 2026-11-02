@@ -6,32 +6,44 @@
 # defaults; change them here if yours differ.
 #
 # The dashboards forbid being shown in a frame of another site; here they are
-# allowed one of this address only. Caddy is then where they come from: keep
-# it to the home network, as the dashboards are.
+# allowed one of this address only.
+#
+# Only the home network gets an answer: loopback, the private ranges and
+# link-local, IPv4 and IPv6. Anyone else — through a port forwarded by the
+# router, say — gets 403 Forbidden and nothing of the dashboards. Through
+# Caddy, Synology Monitor's buttons come from this machine itself, which the
+# dashboard lets in; this is what keeps them to the home network.
+
+# Everything in one route, so that it runs in the order written: Caddy would
+# otherwise sort the dashboards' handlers before the refusal.
 
 :80 {
+	@outside not remote_ip 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 ::1/128 fc00::/7 fe80::/10
+
 	encode gzip
 
-	redir /appliances /appliances/
-	handle_path /appliances/* {
-		reverse_proxy localhost:8582 {
-			header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+	route {
+		respond @outside "Only from the home network" 403
+
+		redir /appliances /appliances/
+		handle_path /appliances/* {
+			reverse_proxy localhost:8582 {
+				header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+			}
 		}
-	}
 
-	redir /synology /synology/
-	handle_path /synology/* {
-		reverse_proxy localhost:8583 {
-			header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+		redir /synology /synology/
+		handle_path /synology/* {
+			reverse_proxy localhost:8583 {
+				header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+			}
 		}
-	}
 
-	redir /connection /connection/
-	handle_path /connection/* {
-		reverse_proxy localhost:8584
-	}
+		redir /connection /connection/
+		handle_path /connection/* {
+			reverse_proxy localhost:8584
+		}
 
-	handle {
 		root * /var/www/monitor-dashboard
 		file_server
 	}

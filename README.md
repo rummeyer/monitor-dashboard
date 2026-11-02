@@ -39,6 +39,7 @@ dashboards look as they always did.
 - [Installation](#installation)
 - [Settings](#settings)
 - [How it works](#how-it-works)
+- [Only on the home network](#only-on-the-home-network)
 - [Troubleshooting](#troubleshooting)
 - [Support](#support)
 - [Licence](#licence)
@@ -76,19 +77,94 @@ The tabs, their names and order are in [`web/tabs.json`](web/tabs.json).
 
 ## How it works
 
-Caddy passes each dashboard through under a path of its own —
-`/appliances/`, `/synology/`, `/connection/` — and serves the page itself at
-`/`. The dashboards ask for everything by relative paths, so they work there
-as they are.
+```
+ browser ──► Caddy :80 ─┬─ /             this page: index.html, overview.js, tabs.json
+                        ├─ /appliances/  ──► Appliance Monitor's dashboard   localhost:8582
+                        ├─ /synology/    ──► Synology Monitor's dashboard    localhost:8583
+                        └─ /connection/  ──► Connection Monitor's dashboard  localhost:8584
+```
 
-The page loads each dashboard in a frame the size of the window, all at
-once, so a tab switches without waiting. As they all come from one address,
-the page can reach into the frames: it puts the tabs in under each header and
-spreads a switched look to the other two. The page's title and icon follow
-the tab shown, and the address keeps it — `/#synology` opens on Synology.
+### One address for all
 
-The dashboards forbid being shown in a frame of another site. The Caddyfile
-allows it for this address only.
+Each plugin serves its dashboard on a port of its own. Caddy passes each one
+through under a path of its own and takes the path off on the way in: a
+request for `/synology/state` reaches Synology Monitor as `/state`. The
+dashboards ask for their scripts, pictures and data by relative paths —
+`state`, `api/live`, `theme.js` — so under `/synology/` they ask for
+`/synology/state`, and work there as they are. Nothing in the plugins knows
+about this page.
+
+### Finding the plugins
+
+There is nothing to set up in the plugins and nothing they announce. The
+page knows the three that could be there from [`web/tabs.json`](web/tabs.json)
+— a name, a path and the key each keeps its look under — and Caddy knows
+their ports from the [`Caddyfile`](Caddyfile). As it opens, the page asks
+each path once whether it answers (`HEAD /synology/`):
+
+- **It answers**: the plugin is running with its dashboard switched on, and
+  it gets a tab.
+- **Caddy cannot reach it** — the plugin is not installed, its dashboard is
+  off, or Homebridge is restarting — and Caddy answers 502: no tab.
+
+So the tabs are whichever dashboards run at the moment the page is opened,
+in the order of `tabs.json`. A plugin added later gets its tab on the next
+reload — as long as its port is in the Caddyfile.
+
+### The tabs inside each dashboard
+
+The page itself shows nothing of its own: a frame per dashboard, the size of
+the window, all loaded at once so that a tab switches without waiting; the
+others are hidden. Because page and frames come from one address, the
+browser lets the page reach into the frames, and as each one loads it
+
+- puts the **tabs** in under the dashboard's header, styled with that
+  dashboard's own colours, so they look as if they were its own;
+- watches the dashboard's **look**: switched to Home, light or dark in one,
+  it is switched in the other two, and stored under each one's key, so it
+  stays the same on the next visit and on the dashboards' own ports;
+- takes over the dashboard's **title and icon** for the browser tab.
+
+The tab shown is in the address — `/#synology` — so a bookmark opens on it.
+
+### Frames
+
+The dashboards of Appliance Monitor and Synology Monitor forbid being shown
+in a frame (`Content-Security-Policy: frame-ancestors 'none'`), so no other
+website can put them in one. The Caddyfile changes that, on the way out, to
+`frame-ancestors 'self'`: a frame of this address only. Opened on their own
+ports, they forbid it as before.
+
+## Only on the home network
+
+The dashboards have no login: they show what is in your home, and Synology
+Monitor's has buttons that shut a NAS down. So Caddy answers only the home
+network:
+
+```
+@outside not remote_ip 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 ::1/128 fc00::/7 fe80::/10
+
+route {
+	respond @outside "Only from the home network" 403
+	…
+}
+```
+
+Loopback, the private ranges and link-local, IPv4 and IPv6: everything else
+gets **403 Forbidden** and nothing of the dashboards, even if a port is
+forwarded to this machine by mistake. The refusal comes first in a `route`,
+whose order Caddy keeps: on its own, Caddy would pass a request to a
+dashboard before refusing it.
+
+This matters for Synology Monitor's buttons in particular. The dashboard
+lets them be pressed only from the home network — but through Caddy every
+request comes from this machine itself, which it lets in. The rule above is
+what keeps the buttons to the home network here.
+
+Caddy serves plain HTTP on port 80, with no certificate: it is meant for the
+home network only. Do not forward port 80 — or the dashboards' own ports —
+from the router. For the dashboards from outside, use a VPN into the home
+network, such as the FRITZ!Box's or WireGuard, and open them as at home.
 
 ## Troubleshooting
 
@@ -102,9 +178,9 @@ the ports, and `sudo journalctl -u caddy`.
 80, such as Apache — `sudo systemctl disable --now apache2` if nothing needs
 it.
 
-**Synology Monitor's buttons**: through Caddy they come from this machine
-itself, which the dashboard lets in. Keep Caddy to the home network, as the
-dashboards are.
+**403 "Only from the home network"**: the request did not come from a
+private address. Through a VPN, check it gives the device an address in the
+home network; behind another proxy, its address is the one Caddy sees.
 
 ## Support
 
