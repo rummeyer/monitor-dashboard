@@ -33,6 +33,10 @@ not installed, or whose dashboard is switched off, simply has no tab.
 The plugins themselves stay as they are: opened on their own ports, their
 dashboards look as they always did.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rummeyer/monitor-dashboard/main/docs/overview.png" alt="Monitor Dashboard in the Home look on the Synology tab: the tabs Appliances, Synology and Connection under the header, Synology chosen, and below them Synology Monitor's own dashboard with the Diskstation's power, temperature, CPU, memory, storage, volume, DSM update and drive tiles and its buttons" width="760">
+</p>
+
 ## Contents
 
 - [Requirements](#requirements)
