@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="home">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Home</title>
+  <link rel="icon" type="image/svg+xml" href="home.svg">
+  <!--
+    Monitor Dashboard: the dashboards of Appliance Monitor, Synology Monitor
+    and Connection Monitor on one page, a tab each. Every dashboard is the
+    plugin's own, in a frame the size of the window; Caddy serves them all
+    from this address, so this page can put the tabs into each one, under
+    its header, and switch the look of all three at once.
+  -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #15181c; }
+    iframe { display: block; width: 100%; height: 100vh; height: 100dvh; border: 0; }
+    iframe[hidden] { display: none; }
+    noscript p, .failed { font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #e6e8eb; padding: 24px; margin: 0; }
+  </style>
+  <script src="overview.js" defer></script>
+</head>
+<body>
+  <noscript><p>The dashboards' tabs need JavaScript.</p></noscript>
+</body>
+</html>

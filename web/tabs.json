@@ -1,0 +1,5 @@
+[
+  { "id": "appliances", "name": "Appliances", "path": "/appliances/", "themeKey": "appliance-monitor.theme" },
+  { "id": "synology", "name": "Synology", "path": "/synology/", "themeKey": "synology-monitor.theme" },
+  { "id": "connection", "name": "Connection", "path": "/connection/", "themeKey": "connection-monitor.theme" }
+]

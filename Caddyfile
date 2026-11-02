@@ -1,0 +1,38 @@
+# Monitor Dashboard: the dashboards of Appliance Monitor, Synology Monitor and
+# Connection Monitor on one page, a tab each, at http://<this machine>/.
+#
+# Each dashboard is passed through under a path of its own, so that all of
+# them and the page come from one address. Their ports are the plugins'
+# defaults; change them here if yours differ.
+#
+# The dashboards forbid being shown in a frame of another site; here they are
+# allowed one of this address only. Caddy is then where they come from: keep
+# it to the home network, as the dashboards are.
+
+:80 {
+	encode gzip
+
+	redir /appliances /appliances/
+	handle_path /appliances/* {
+		reverse_proxy localhost:8582 {
+			header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+		}
+	}
+
+	redir /synology /synology/
+	handle_path /synology/* {
+		reverse_proxy localhost:8583 {
+			header_down Content-Security-Policy "frame-ancestors 'none'" "frame-ancestors 'self'"
+		}
+	}
+
+	redir /connection /connection/
+	handle_path /connection/* {
+		reverse_proxy localhost:8584
+	}
+
+	handle {
+		root * /var/www/monitor-dashboard
+		file_server
+	}
+}
